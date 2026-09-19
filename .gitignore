@@ -2,6 +2,7 @@
 node_modules/
 desktop-d6-cache/
 log/
+dist/
 *.log
 .env
 .DS_Store

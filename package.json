@@ -12,9 +12,52 @@
   },
   "scripts": {
     "start": "electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    "dist": "electron-builder --win zip"
   },
   "devDependencies": {
-    "electron": "^32.2.0"
+    "electron": "^32.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.zth12138.desktopd6",
+    "productName": "Desktop D6",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!collectibles/**",
+      "!desktop-d6-cache/**",
+      "!log/**",
+      "!dist/**",
+      "!tests/**"
+    ],
+    "extraFiles": [
+      {
+        "from": "collectibles",
+        "to": "collectibles"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "THIRD_PARTY_ASSETS.md",
+        "to": "THIRD_PARTY_ASSETS.md"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-win.${ext}"
+    }
   }
 }
