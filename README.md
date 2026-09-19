@@ -1,7 +1,7 @@
 # Desktop D6
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Desktop D6 演示" width="700">
+  <img src="assets/demo.gif" alt="Desktop D6 演示" width="300">
 </p>
 
 Desktop D6 是一个 Windows 桌面摆件。它使用《以撒的结合》风格的 D6、底座和道具图标，让用户点击 D6 后随机替换桌面应用快捷方式的图标。
