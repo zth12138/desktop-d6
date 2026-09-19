@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "description": "A tiny Binding of Isaac D6 desktop icon randomizer.",
   "main": "main.js",
+  "author": "zth12138",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zth12138/desktop-d6.git"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "electron ."

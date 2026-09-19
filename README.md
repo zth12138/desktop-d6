@@ -1,6 +1,13 @@
 # Desktop D6
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Platform-Windows-blue" alt="Windows">
+  <img src="https://img.shields.io/badge/Built%20with-Electron-47848F" alt="Electron">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
+  <img src="https://img.shields.io/badge/Status-Development-orange" alt="Development">
+</p>
+
+<p align="center">
   <img src="assets/demo.gif" alt="Desktop D6 演示" width="300">
 </p>
 
@@ -195,3 +202,17 @@ Electron 主进程入口，负责：
 ## 后续打包
 
 计划生成 Windows 便携版或安装版。打包时需要让 `collectibles` 作为 `.exe` 旁边的外置目录发布，不能将其只封装进不可编辑的应用归档。这样用户无需安装 Node.js，也能双击启动并自由管理自己的道具图标。
+
+## 开源许可
+
+本项目中的原创源代码采用 [MIT License](LICENSE) 开源。
+
+第三方游戏名称、角色、美术素材及其他相关内容不包含在 MIT License 的授权范围内，其相关权利归各自权利人所有。
+
+## 免责声明
+
+Desktop D6 是一个个人学习与兴趣项目，与《以撒的结合》官方、开发者及发行方无关，也未获得其官方认可或赞助。
+
+《以撒的结合》及其相关名称、美术素材、游戏内容等的权利归各自权利人所有。
+
+本仓库中的 MIT License 仅适用于本项目作者原创的程序源代码，不代表对任何第三方素材进行授权。
