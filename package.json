@@ -1,0 +1,14 @@
+{
+  "name": "desktop-d6",
+  "version": "1.0.0",
+  "description": "A tiny Binding of Isaac D6 desktop icon randomizer.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^32.2.0"
+  }
+}

@@ -1,0 +1,108 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  user-select: none;
+}
+
+.pet {
+  position: relative;
+  width: 128px;
+  height: 164px;
+}
+
+#d6-button {
+  position: absolute;
+  inset: 0;
+  width: 128px;
+  height: 164px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+#d6-button:focus-visible {
+  filter: drop-shadow(0 0 5px rgba(255, 220, 121, 0.8));
+}
+
+.pedestal,
+.shadow,
+.dice {
+  position: absolute;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
+
+.pedestal {
+  left: 16px;
+  top: 84px;
+  width: 96px;
+  height: 78px;
+  z-index: 1;
+}
+
+.shadow {
+  left: 29px;
+  top: 95px;
+  width: 67px;
+  height: 19px;
+  z-index: 2;
+}
+
+.dice {
+  left: 14px;
+  top: 10px;
+  width: 96px;
+  height: 96px;
+  transform-origin: 50% 70%;
+  animation: float-d6 1.8s ease-in-out infinite;
+  transition: filter 90ms ease;
+  z-index: 3;
+}
+
+#d6-button:hover .dice {
+  filter: drop-shadow(0 0 4px rgba(255, 231, 151, 0.45));
+}
+
+#d6-button:active .dice {
+  animation: none;
+  transform: translateY(3px) scale(0.96);
+}
+
+.drag-handle {
+  position: absolute;
+  left: 16px;
+  top: 84px;
+  width: 96px;
+  height: 78px;
+  z-index: 4;
+  cursor: grab;
+  -webkit-app-region: no-drag;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+@keyframes float-d6 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
