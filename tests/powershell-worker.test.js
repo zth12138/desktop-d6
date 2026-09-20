@@ -129,6 +129,16 @@ test('worker source initializes native code and COM before reading requests', ()
   assert.ok(WORKER_SCRIPT.indexOf('[Console]::In.ReadLine()') > readyIndex);
 });
 
+test('worker uses a single flushing shell notification and logs refresh details', () => {
+  assert.match(WORKER_SCRIPT, /\$targetNotifyFlags = if \(\$RefreshAll\).*0x0005.*0x1005/);
+  assert.match(WORKER_SCRIPT, /SHChangeNotify\(0x00002000, \$targetNotifyFlags/);
+  assert.match(WORKER_SCRIPT, /SHChangeNotify\(0x08000000, 0x1000/);
+  assert.match(WORKER_SCRIPT, /\$Stages\.refreshMode/);
+  assert.match(WORKER_SCRIPT, /\$Stages\.targetNotifications/);
+  assert.match(WORKER_SCRIPT, /\$Stages\.targetNotifyMs/);
+  assert.doesNotMatch(WORKER_SCRIPT, /Start-Sleep/);
+});
+
 test('embedded worker is valid PowerShell syntax', { skip: process.platform !== 'win32' }, () => {
   const parserScript = String.raw`
     $source = [Console]::In.ReadToEnd()

@@ -192,7 +192,7 @@ Electron 主进程入口，负责：
 
 开启日志后，`powershell.worker.ready` 记录一次性初始化总耗时以及 `nativeCompileMs`、`comCreateMs`；`powershell.worker.complete` 记录每个请求的通信总耗时、工作进程内部耗时和 `stages`。写入阶段包括是否命中缓存的 `cacheHit`、`shortcutOpenMs`、`propertySetMs`、`shortcutSaveMs`、重新打开并校验保存结果的 `verifyOpenMs`，刷新阶段包括 `memoryMs` 和 `notifyMs`。
 
-单个模式的 `randomize.return` 只是点击请求返回；`shortcut.queue.complete` 才表示后台写入和刷新通知已完成。`operationElapsedMs` 是从操作开始到该日志事件的时间。Explorer 实际在屏幕上绘制完成的时间无法由这些通知确认，日志不代表屏幕更新延迟。嵌套步骤的耗时有重叠，不应全部相加。
+单个模式会等到 `shortcut.queue.complete` 表示快捷方式写入和同步刷新通知完成后才返回。`powershell.worker.complete` 的 `stages` 会记录 `refreshMode`、通知标志、次数以及 `targetNotifyMs`、`fullNotifyMs` 和总计 `notifyMs`；同步刷新只等待 Explorer 处理本次通知，不使用延迟补发。`operationElapsedMs` 是从操作开始到该日志事件的时间。Explorer 实际在屏幕上绘制完成的时间无法由这些通知确认，日志不代表屏幕更新延迟。嵌套步骤的耗时有重叠，不应全部相加。
 
 性能日志先进入内存队列，再异步批量追加到文件，不阻塞图标操作。关闭日志后不再生成新记录，队列中已有记录仍会写完，已有日志保留；写入失败会在启动终端提示，图标操作继续执行。若希望记录启动预加载耗时，先勾选日志，再重启应用。
 

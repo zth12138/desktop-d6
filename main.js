@@ -7,6 +7,8 @@ const { PowerShellWorker } = require('./powershell-worker');
 const { composeGlitchedIcon, createGlitchPlan, pickSourceImages } = require('./glitched-item');
 
 const isWindows = process.platform === 'win32';
+const WINDOW_WIDTH = 128;
+const WINDOW_HEIGHT = 164;
 let win;
 let collectiblePool;
 const collectibleBitmapCache = new Map();
@@ -253,7 +255,7 @@ function queueShortcutIconUpdate(shortcutPath, iconPath) {
     .then(() => performanceLog('shortcut.queue.complete', { durationMs: elapsedMs(queuedAt), shortcutPath }))
     .catch(error => {
       performanceLog('shortcut.queue.error', { durationMs: elapsedMs(queuedAt), shortcutPath, message: error.message });
-      dialog.showErrorBox('随机图标失败', `${path.basename(shortcutPath)}：${error.message}`);
+      throw error;
     })
     .finally(() => {
       if (pendingShortcutUpdates.get(shortcutPath.toLowerCase()) === next) {
@@ -261,6 +263,7 @@ function queueShortcutIconUpdate(shortcutPath, iconPath) {
       }
     });
   pendingShortcutUpdates.set(shortcutPath.toLowerCase(), next);
+  return next;
 }
 
 async function restoreShortcutIcon(shortcutPath, iconLocation) {
@@ -479,7 +482,7 @@ async function runRandomizeDesktop(selectedShortcutPath = null) {
     try {
       performanceLogger.sync('baseline.persist', () => persistState(entriesByPath), { shortcutPath });
       if (selectedShortcutPath) {
-        queueShortcutIconUpdate(shortcutPath, generatedIcon);
+        await queueShortcutIconUpdate(shortcutPath, generatedIcon);
       } else {
         await performanceLogger.measure('shortcut.write.verify', () => changeShortcutIcon(shortcutPath, generatedIcon), { shortcutPath, iconPath: generatedIcon });
       }
@@ -669,13 +672,37 @@ function showRandomizeResult(result) {
   }
 }
 
+function enforceWindowSize() {
+  if (!win || win.isDestroyed()) return;
+  const bounds = win.getBounds();
+  if (bounds.width === WINDOW_WIDTH && bounds.height === WINDOW_HEIGHT) return;
+  win.setBounds({ ...bounds, width: WINDOW_WIDTH, height: WINDOW_HEIGHT }, false);
+}
+
+function moveWindow(x, y) {
+  if (!win || win.isDestroyed() || !Number.isFinite(x) || !Number.isFinite(y)) return;
+  win.setBounds({
+    x: Math.round(x),
+    y: Math.round(y),
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT
+  }, false);
+}
+
 function createWindow() {
   win = new BrowserWindow({
-    width: 128,
-    height: 164,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
+    minWidth: WINDOW_WIDTH,
+    maxWidth: WINDOW_WIDTH,
+    minHeight: WINDOW_HEIGHT,
+    maxHeight: WINDOW_HEIGHT,
+    useContentSize: true,
     frame: false,
     transparent: true,
     resizable: false,
+    maximizable: false,
+    fullscreenable: false,
     movable: true,
     alwaysOnTop: true,
     skipTaskbar: true,
@@ -683,6 +710,9 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
   win.setAlwaysOnTop(true, 'floating');
+  win.on('will-resize', event => event.preventDefault());
+  win.on('resize', enforceWindowSize);
+  win.on('move', enforceWindowSize);
   win.loadFile('index.html');
   win.webContents.on('context-menu', event => {
     event.preventDefault();
@@ -805,9 +835,12 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('restore-desktop', async () => (await restoreDesktop()).restored);
   ipcMain.handle('get-display-mode', () => displayMode());
-  ipcMain.handle('get-window-bounds', () => win.getBounds());
+  ipcMain.handle('get-window-bounds', () => {
+    enforceWindowSize();
+    return win.getBounds();
+  });
   ipcMain.on('move-window', (_event, x, y) => {
-    if (win && !win.isDestroyed()) win.setPosition(Math.round(x), Math.round(y));
+    moveWindow(x, y);
   });
   ipcMain.on('show-menu', showMenu);
 });

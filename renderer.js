@@ -59,6 +59,10 @@ dragHandle.addEventListener('mousedown', async event => {
 
 window.addEventListener('mousemove', event => {
   if (!dragging) return;
+  if ((event.buttons & 1) === 0) {
+    dragging = undefined;
+    return;
+  }
   window.d6.moveWindow(
     dragging.windowX + event.screenX - dragging.startX,
     dragging.windowY + event.screenY - dragging.startY
@@ -66,6 +70,7 @@ window.addEventListener('mousemove', event => {
 });
 
 window.addEventListener('mouseup', () => { dragging = undefined; });
+window.addEventListener('blur', () => { dragging = undefined; });
 
 window.addEventListener('contextmenu', event => {
   event.preventDefault();

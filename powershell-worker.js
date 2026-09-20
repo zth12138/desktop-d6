@@ -56,16 +56,24 @@ function Get-DesktopD6WritableLink([string]$ShortcutPath, [bool]$UseCache, $Stag
 }
 
 function Invoke-DesktopD6Refresh($ShortcutPaths, [bool]$RefreshAll, $Stages) {
-  $notificationMs = 0.0
+  $targetNotificationMs = 0.0
+  $fullNotificationMs = 0.0
   $memoryMs = 0.0
-  foreach ($shortcutPath in @($ShortcutPaths)) {
+  $resolvedShortcutPaths = @($ShortcutPaths)
+  $targetNotifyFlags = if ($RefreshAll) { [uint32]0x0005 } else { [uint32]0x1005 }
+  $Stages.refreshMode = if ($RefreshAll) { 'all-flush' } else { 'target-flush' }
+  $Stages.targetNotifyFlags = if ($RefreshAll) { 'SHCNF_PATHW' } else { 'SHCNF_PATHW|SHCNF_FLUSH' }
+  $Stages.targetNotifications = $resolvedShortcutPaths.Count
+  $Stages.fullNotifyFlags = if ($RefreshAll) { 'SHCNF_FLUSH' } else { '' }
+  $Stages.fullNotifications = if ($RefreshAll) { 1 } else { 0 }
+  foreach ($shortcutPath in $resolvedShortcutPaths) {
     $stageTimer = [Diagnostics.Stopwatch]::StartNew()
     $pointer = [Runtime.InteropServices.Marshal]::StringToHGlobalUni([string]$shortcutPath)
     $memoryMs += $stageTimer.Elapsed.TotalMilliseconds
     try {
       $stageTimer.Restart()
-      [DesktopD6.NativeShell]::SHChangeNotify(0x00002000, 0x0005, $pointer, [IntPtr]::Zero)
-      $notificationMs += $stageTimer.Elapsed.TotalMilliseconds
+      [DesktopD6.NativeShell]::SHChangeNotify(0x00002000, $targetNotifyFlags, $pointer, [IntPtr]::Zero)
+      $targetNotificationMs += $stageTimer.Elapsed.TotalMilliseconds
     }
     finally {
       $stageTimer.Restart()
@@ -75,11 +83,13 @@ function Invoke-DesktopD6Refresh($ShortcutPaths, [bool]$RefreshAll, $Stages) {
   }
   if ($RefreshAll) {
     $stageTimer = [Diagnostics.Stopwatch]::StartNew()
-    [DesktopD6.NativeShell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
-    $notificationMs += $stageTimer.Elapsed.TotalMilliseconds
+    [DesktopD6.NativeShell]::SHChangeNotify(0x08000000, 0x1000, [IntPtr]::Zero, [IntPtr]::Zero)
+    $fullNotificationMs += $stageTimer.Elapsed.TotalMilliseconds
   }
   $Stages.memoryMs = [Math]::Round($memoryMs, 3)
-  $Stages.notifyMs = [Math]::Round($notificationMs, 3)
+  $Stages.targetNotifyMs = [Math]::Round($targetNotificationMs, 3)
+  $Stages.fullNotifyMs = [Math]::Round($fullNotificationMs, 3)
+  $Stages.notifyMs = [Math]::Round($targetNotificationMs + $fullNotificationMs, 3)
 }
 
 $initializationTimer = [Diagnostics.Stopwatch]::StartNew()
