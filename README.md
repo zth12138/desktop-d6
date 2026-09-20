@@ -3,7 +3,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows-blue" alt="Windows">
   <img src="https://img.shields.io/badge/Built%20with-Electron-47848F" alt="Electron">
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
+  <img src="https://img.shields.io/badge/Code%20License-MIT-green" alt="Code License: MIT">
   <img src="https://img.shields.io/badge/Status-Development-orange" alt="Development">
 </p>
 
@@ -11,7 +11,10 @@
   <img src="assets/demo.gif" alt="Desktop D6 演示" width="300">
 </p>
 
-Desktop D6 是一个 Windows 桌面摆件。它使用《以撒的结合》风格的 D6、底座和道具图标，让用户点击 D6 后随机替换桌面应用快捷方式的图标。
+Desktop D6 是一个非官方、非商业的《以撒的结合》同人 Windows 桌面摆件。它使用游戏相关的 D6、底座和道具图标，让用户点击 D6 后随机替换桌面应用快捷方式的图标。
+
+> [!IMPORTANT]
+> 本项目与《以撒的结合》的开发者、发行商及相关权利人不存在隶属、授权、赞助或认可关系。仓库中的 MIT License 仅适用于项目作者原创的程序源代码，不适用于游戏相关名称、美术、音频及其衍生内容。详细说明见 [THIRD_PARTY_ASSETS.md](THIRD_PARTY_ASSETS.md)。
 
 ## 当前状态
 
@@ -216,12 +219,16 @@ Electron 主进程入口，负责：
 
 本项目中的原创源代码采用 [MIT License](LICENSE) 开源。
 
-第三方游戏名称、角色、美术素材及其他相关内容不包含在 MIT License 的授权范围内，其相关权利归各自权利人所有。
+仓库中的游戏相关图像和音频，由项目作者从本人合法安装的游戏副本中，使用游戏随附或提供的资源提取工具导出，并为程序使用进行了必要的整理或适配。具体文件范围和来源说明见 [THIRD_PARTY_ASSETS.md](THIRD_PARTY_ASSETS.md)。
+
+游戏提供资源提取工具并不自动等同于授予公开再分发原始素材的许可。第三方游戏名称、美术素材、音频及其他相关内容不包含在 MIT License 的授权范围内，其权利归各自权利人所有。
 
 ## 免责声明
 
-Desktop D6 是一个个人学习与兴趣项目，与《以撒的结合》官方、开发者及发行方无关，也未获得其官方认可或赞助。
+Desktop D6 是一个非官方、非商业的个人学习与兴趣项目，与《以撒的结合》的开发者、发行商及相关权利人无关，也未获得其授权、认可或赞助。
 
 《以撒的结合》及其相关名称、美术素材、游戏内容等的权利归各自权利人所有。
 
 本仓库中的 MIT License 仅适用于本项目作者原创的程序源代码，不代表对任何第三方素材进行授权。
+
+如果相关权利人认为仓库中的内容使用不当，可以联系仓库维护者；维护者将配合移除或替换相关素材。
