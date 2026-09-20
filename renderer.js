@@ -1,7 +1,20 @@
 const button = document.getElementById('d6-button');
+const icon = button.querySelector('.dice');
 const dragHandle = document.querySelector('.drag-handle');
 let locked = false;
 let dragging;
+
+function setDisplayMode(mode) {
+  const dataMinerEnabled = mode === 'dataminer';
+  icon.src = dataMinerEnabled ? 'resourcse/dataminer.png' : 'resourcse/dice.png';
+  icon.alt = dataMinerEnabled ? '数据破解' : 'D6';
+  const actionLabel = dataMinerEnabled ? '使用数据破解' : '使用 D6';
+  button.title = `${actionLabel}随机化桌面应用图标`;
+  button.setAttribute('aria-label', `${actionLabel}随机化桌面应用图标`);
+}
+
+window.d6.getDisplayMode().then(setDisplayMode).catch(console.error);
+window.d6.onDisplayModeChanged(setDisplayMode);
 
 button.addEventListener('click', async () => {
   if (locked) return;

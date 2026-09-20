@@ -1,13 +1,15 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, nativeImage, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { PerformanceLog } = require('./performance-log');
 const { PowerShellWorker } = require('./powershell-worker');
+const { composeGlitchedIcon, createGlitchPlan, pickSourceImages } = require('./glitched-item');
 
 const isWindows = process.platform === 'win32';
 let win;
 let collectiblePool;
+const collectibleBitmapCache = new Map();
 let writableCacheFolder;
 const pendingShortcutUpdates = new Map();
 const performanceLogger = new PerformanceLog(logPath());
@@ -42,10 +44,14 @@ function settingsPath() {
 
 function readSettings() {
   try {
-    return { selectedShortcutPath: null, loggingEnabled: false, ...JSON.parse(fs.readFileSync(settingsPath(), 'utf8')) };
+    return { selectedShortcutPath: null, loggingEnabled: false, displayMode: 'd6', ...JSON.parse(fs.readFileSync(settingsPath(), 'utf8')) };
   } catch {
-    return { selectedShortcutPath: null, loggingEnabled: false };
+    return { selectedShortcutPath: null, loggingEnabled: false, displayMode: 'd6' };
   }
+}
+
+function displayMode(settings = readSettings()) {
+  return settings.displayMode === 'dataminer' ? 'dataminer' : 'd6';
 }
 
 function writeSettings(settings) {
@@ -134,12 +140,14 @@ function collectibleFiles() {
   const folder = collectibleFolder();
   collectiblePool = fs.readdirSync(folder)
     .filter(name => /^collectibles_\d+_.+\.png$/i.test(name))
-    .map(name => path.join(folder, name));
+    .map(name => path.join(folder, name))
+    .sort((left, right) => left.localeCompare(right, 'en'));
   return [...collectiblePool];
 }
 
 function clearCollectibleCache() {
   collectiblePool = undefined;
+  collectibleBitmapCache.clear();
 }
 
 function shuffle(items) {
@@ -149,6 +157,38 @@ function shuffle(items) {
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
+}
+
+function loadCollectibleBitmap(collectiblePath) {
+  const cached = collectibleBitmapCache.get(collectiblePath);
+  if (cached) return cached;
+
+  const image = nativeImage.createFromPath(collectiblePath);
+  if (image.isEmpty()) throw new Error(`无法读取道具图标：${collectiblePath}`);
+  const size = image.getSize();
+  if (size.width !== 32 || size.height !== 32) {
+    throw new Error(`道具图标尺寸必须是 32x32，当前是 ${size.width}x${size.height}：${collectiblePath}`);
+  }
+
+  const bitmap = image.toBitmap({ scaleFactor: 1 });
+  if (bitmap.length !== 32 * 32 * 4) throw new Error(`道具图标像素数据无效：${collectiblePath}`);
+  collectibleBitmapCache.set(collectiblePath, bitmap);
+  return bitmap;
+}
+
+function randomGlitchSeed() {
+  let seed = 0;
+  while (seed === 0) seed = crypto.randomBytes(4).readUInt32LE(0);
+  return seed;
+}
+
+function generateGlitchedPng(seed, candidates) {
+  const { blocks, colorParams, localRng } = createGlitchPlan(seed);
+  const sources = pickSourceImages(localRng, candidates, loadCollectibleBitmap);
+  const bitmap = composeGlitchedIcon(blocks, sources.images, colorParams);
+  const image = nativeImage.createFromBitmap(bitmap, { width: 32, height: 32, scaleFactor: 1 });
+  if (image.isEmpty()) throw new Error('无法创建错误道具图标。');
+  return { png: image.toPNG(), sourcePaths: sources.paths };
 }
 
 function pngToIco(pngBuffer) {
@@ -314,14 +354,22 @@ async function randomizeDesktop(selectedShortcutPath = null) {
 async function runRandomizeDesktop(selectedShortcutPath = null) {
   const startedAt = process.hrtime.bigint();
   if (!isWindows) throw new Error('此工具目前只支持 Windows。');
-  const pool = performanceLogger.sync('collectibles.list.shuffle', () => shuffle(collectibleFiles()));
+  const settings = performanceLogger.sync('settings.read', readSettings);
+  const currentDisplayMode = displayMode(settings);
+  const pool = performanceLogger.sync('collectibles.list.prepare', () => {
+    const collectibles = collectibleFiles();
+    return currentDisplayMode === 'dataminer' ? collectibles : shuffle(collectibles);
+  });
   if (pool.length === 0) {
     throw new Error('道具文件夹中没有可用 PNG。请添加符合 collectibles_数字_名称.png 格式的 32x32 图标。');
   }
   const iconFolder = performanceLogger.sync('cache.prepare', ensureCacheFolder);
-  const settings = performanceLogger.sync('settings.read', readSettings);
   selectedShortcutPath = selectedShortcutPath || settings.selectedShortcutPath || null;
-  performanceLog('randomize.mode', { mode: selectedShortcutPath ? 'single' : 'global', selectedShortcutPath });
+  performanceLog('randomize.mode', {
+    mode: selectedShortcutPath ? 'single' : 'global',
+    displayMode: currentDisplayMode,
+    selectedShortcutPath
+  });
   if (selectedShortcutPath && !fs.existsSync(selectedShortcutPath)) {
     writeSettings({
       ...settings,
@@ -370,14 +418,36 @@ async function runRandomizeDesktop(selectedShortcutPath = null) {
 
   for (let iconIndex = 0; iconIndex < targets.length; iconIndex++) {
     const { shortcutPath, info } = targets[iconIndex];
-    const collectible = pool[iconIndex % pool.length];
+    let collectible = pool[iconIndex % pool.length];
+    let glitchSeed;
+    let glitchSources;
     const token = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const generatedIcon = path.join(iconFolder, `${token}.ico`);
     const icoStartedAt = process.hrtime.bigint();
-    const png = performanceLogger.sync('png.read', () => fs.readFileSync(collectible), { collectible });
-    const ico = performanceLogger.sync('ico.convert', () => pngToIco(png), { collectible });
+    let png;
+    if (currentDisplayMode === 'dataminer') {
+      glitchSeed = randomGlitchSeed();
+      const generated = performanceLogger.sync(
+        'glitch.generate',
+        () => generateGlitchedPng(glitchSeed, pool),
+        { seed: glitchSeed }
+      );
+      png = generated.png;
+      glitchSources = generated.sourcePaths.map(sourcePath => path.basename(sourcePath));
+      collectible = `glitch:${glitchSeed.toString(16).padStart(8, '0')}`;
+    } else {
+      png = performanceLogger.sync('png.read', () => fs.readFileSync(collectible), { collectible });
+    }
+    const ico = performanceLogger.sync('ico.convert', () => pngToIco(png), { collectible, glitchSeed });
     performanceLogger.sync('ico.write', () => fs.writeFileSync(generatedIcon, ico), { generatedIcon, bytes: ico.length });
-    performanceLog('ico.generate', { durationMs: elapsedMs(icoStartedAt), collectible, generatedIcon });
+    performanceLog('ico.generate', {
+      durationMs: elapsedMs(icoStartedAt),
+      collectible,
+      displayMode: currentDisplayMode,
+      generatedIcon,
+      glitchSeed,
+      glitchSources
+    });
     const key = shortcutPath.toLowerCase();
     const existing = entriesByPath.get(key);
     const previousGeneratedIcon = existing?.generatedIcon;
@@ -626,6 +696,17 @@ function showMenu() {
     : '';
   Menu.buildFromTemplate([
     {
+      label: '数据破解',
+      type: 'checkbox',
+      checked: displayMode(settings) === 'dataminer',
+      click: item => {
+        const mode = item.checked ? 'dataminer' : 'd6';
+        writeSettings({ ...readSettings(), displayMode: mode });
+        if (win && !win.isDestroyed()) win.webContents.send('display-mode-changed', mode);
+      }
+    },
+    { type: 'separator' },
+    {
       label: '恢复桌面默认图标',
       click: async () => {
         try {
@@ -723,6 +804,7 @@ app.whenReady().then(async () => {
     }
   });
   ipcMain.handle('restore-desktop', async () => (await restoreDesktop()).restored);
+  ipcMain.handle('get-display-mode', () => displayMode());
   ipcMain.handle('get-window-bounds', () => win.getBounds());
   ipcMain.on('move-window', (_event, x, y) => {
     if (win && !win.isDestroyed()) win.setPosition(Math.round(x), Math.round(y));
